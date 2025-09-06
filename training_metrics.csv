@@ -1,0 +1,2 @@
+epoch,domain_acc,realm_acc,diff_mae
+1,0.686,0.564,0.14704830775732242

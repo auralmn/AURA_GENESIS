@@ -1,0 +1,198 @@
+# AURA_GENESIS System Configuration
+# Centralized configuration for all system parameters
+
+# System Information
+system:
+  name: "AURA_GENESIS"
+  version: "2.0.0"
+  description: "Advanced Neural Network System with Safe Boot Sequence"
+  author: "AURA Team"
+
+# Boot Configuration
+boot:
+  validate_dependencies: true
+  initialize_weights: true
+  enable_health_checks: true
+  timeout_seconds: 60
+  retry_attempts: 3
+  safe_mode: true
+
+# Network Architecture
+network:
+  # Base network parameters
+  neuron_count: 1000
+  features: 384
+  input_channels: 384
+  output_channels: 384
+  
+  # SPAN integration
+  enable_span: false  # Disabled for safe boot
+  span_neurons_per_region: 10
+  
+  # SVC parameters - will be loaded from svc_domain_labels.json
+  domains: []  # Will be loaded dynamically from svc_domain_labels.json
+  realms: []   # Will be loaded dynamically from svc_domain_labels.json
+  
+  offline: true
+  nlms_clamp: [0.0, 1.0]
+  nlms_l2: 1e-4
+  features_mode: "sbert"  # 'sbert' | 'phasor' | 'combined'
+  features_alpha: 0.7
+  weights_dir: "svc_nlms_weights"
+  startnew: false
+
+# Brain Region Configuration
+brain_regions:
+  thalamus:
+    neuron_count: 10000
+    input_channels: 384
+    output_channels: 384
+  
+  hippocampus:
+    neuron_count: 10000
+    features: 384
+    input_dim: 384
+  
+  amygdala:
+    neuron_count: 3000
+    features: 384
+    input_dim: 384
+  
+  thalamic_router:
+    neuron_count: 6000
+    features: 384
+    input_dim: 384
+  
+  cns:
+    input_dim: 384
+
+# Safe Boot Sequence Configuration
+safe_boot:
+  # Phase 1: Core Dependencies
+  phase_1:
+    validate_imports: true
+    setup_environment: true
+    validate_configuration: true
+  
+  # Phase 2: Neural Components
+  phase_2:
+    initialize_neuron_classes: true
+    initialize_nlms_heads: true
+    initialize_phasor_systems: true
+    initialize_state_machines: true
+  
+  # Phase 3: Network Assembly
+  phase_3:
+    initialize_thalamus: true
+    initialize_hippocampus: true
+    initialize_amygdala: true
+    initialize_thalamic_router: true
+    initialize_cns: true
+  
+  # Phase 4: Weight Initialization
+  phase_4:
+    initialize_thalamus_weights: true
+    initialize_hippocampus_weights: true
+    initialize_router_weights: true
+    validate_weight_initialization: true
+  
+  # Phase 5: System Integration
+  phase_5:
+    assemble_main_network: true
+    register_brain_regions: true
+    initialize_chat_orchestrator: true
+    setup_component_connections: true
+  
+  # Phase 6: Health Validation
+  phase_6:
+    check_component_connectivity: true
+    check_memory_allocation: true
+    check_neural_pathways: true
+    test_system_responsiveness: true
+
+# Paths and Directories
+paths:
+  weights_dir: "/Volumes/Others2/AURA_GENESIS/weights"
+  models_dir: "/Volumes/Others2/AURA_GENESIS/models"
+  svc_data_path: null  # Set to path if SVC data available
+  log_dir: "logs"
+  cache_dir: "cache"
+
+# Pre-trained Models
+models:
+  emotion_classifier: "clf_emotion.pt"
+  intent_classifier: "clf_intent.pt"
+  tone_classifier: "clf_tone.pt"
+  svc_domain_classifier: "svc_domain_classifier_enhanced.pt"
+  svc_realm_classifier: "svc_realm_classifier_enhanced.pt"
+  svc_difficulty_regressor: "svc_difficulty_regressor_enhanced.pt"
+
+# SVC Analysis Configuration
+svc_analysis:
+  enable: true
+  linguistic_features_enabled: true
+  domains: []  # Will be loaded dynamically from svc_domain_labels.json
+  realms: []   # Will be loaded dynamically from svc_domain_labels.json
+  domain_labels_path: "/Volumes/Others2/AURA_GENESIS/svc_domain_labels.json"
+
+# Performance Monitoring
+monitoring:
+  enable: true
+  health_check_interval: 30  # seconds
+  metrics_collection_interval: 60  # seconds
+  memory_threshold_mb: 1024
+  cpu_threshold_percent: 80.0
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "aura_system.log"
+  max_size_mb: 100
+  backup_count: 5
+
+# Device Configuration
+device:
+  type: "mps"  # 'cpu', 'cuda', 'mps'
+  fallback_to_cpu: true
+
+# Training Configuration
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 100
+  validation_split: 0.2
+  early_stopping_patience: 10
+
+# Security Configuration
+security:
+  enable_encryption: false
+  api_key_required: false
+  rate_limiting: false
+  max_requests_per_minute: 100
+
+# Qdrant Configuration
+qdrant:
+  enable: false
+  url: "http://localhost"
+  port: 6333
+  vector_dim: 384
+  collections:
+    neurons: "bio_neurons"
+    regions: "bio_regions"
+    routing: "bio_routing"
+  streaming:
+    enabled: false
+    snapshot_interval: 50  # operations
+    auto_snapshot: true
+  environment_vars:
+    AURA_QDRANT_STREAM: "0"
+    QDRANT_URL: "http://localhost"
+    QDRANT_PORT: "6333"
+
+# Development Configuration
+development:
+  debug_mode: false
+  verbose_logging: false
+  profile_performance: false
+  save_debug_info: false

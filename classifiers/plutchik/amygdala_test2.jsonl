@@ -1,0 +1,20 @@
+{"id":"emo_hard_001", "text":"The room burst into cheerful laughter and everyone started dancing.", "intent":"social_gathering", "plutchik":{"primary":"joy", "intensity":0.95}, "tone":"uplifting"}
+{"id":"emo_hard_002", "text":"She listened intently, nodding in agreement and following every instruction.", "intent":"accept_guidance", "plutchik":{"primary":"trust", "intensity":0.85}, "tone":"respectful"}
+{"id":"emo_hard_003", "text":"His hands trembled and his voice faltered during the thunderstorm.", "intent":"fear_response", "plutchik":{"primary":"fear", "intensity":0.9}, "tone":"nervous"}
+{"id":"emo_hard_004", "text":"Cheers erupted as confetti filled the air—everyone was taken aback by the announcement.", "intent":"reveal_surprise", "plutchik":{"primary":"surprise", "intensity":0.8}, "tone":"excited"}
+{"id":"emo_hard_005", "text":"A heavy silence lingered after hearing the news; some wiped away tears silently.", "intent":"receive_bad_news", "plutchik":{"primary":"sadness", "intensity":0.9}, "tone":"somber"}
+{"id":"emo_hard_006", "text":"He couldn’t stop checking his watch, pacing anxiously before the big event.", "intent":"anticipate_event", "plutchik":{"primary":"anticipation", "intensity":0.8}, "tone":"tense"}
+{"id":"emo_hard_007", "text":"She slammed the door shut and refused to speak with anyone for hours.", "intent":"show_frustration", "plutchik":{"primary":"anger", "intensity":0.85}, "tone":"irritated"}
+{"id":"emo_hard_008", "text":"He grimaced and pushed away the plate, unable to even look at the food.", "intent":"reject_food", "plutchik":{"primary":"disgust", "intensity":0.95}, "tone":"displeased"}
+
+{"id":"emo_hard_009", "text":"She shrugged lightly, gazing out the window with a soft smile.", "intent":"reflect", "plutchik":{"primary":"joy", "intensity":0.2}, "tone":"peaceful"}
+{"id":"emo_hard_010", "text":"He followed the group's decision without protest, trusting their choices.", "intent":"follow_group", "plutchik":{"primary":"trust", "intensity":0.5}, "tone":"accepting"}
+{"id":"emo_hard_011", "text":"The chills climbed his spine as darkness enveloped the trail.", "intent":"explore_at_night", "plutchik":{"primary":"fear", "intensity":0.6}, "tone":"uneasy"}
+{"id":"emo_hard_012", "text":"She blinked rapidly at the unexpected display, barely able to process what she'd seen.", "intent":"process_event", "plutchik":{"primary":"surprise", "intensity":0.4}, "tone":"caught_off_guard"}
+{"id":"emo_hard_013", "text":"He let out a small sigh, letting the memories drift by.", "intent":"recall_memory", "plutchik":{"primary":"sadness", "intensity":0.3}, "tone":"wistful"}
+{"id":"emo_hard_014", "text":"Footsteps echoed as she waited for the exam results, heart pounding beneath her chest.", "intent":"await_results", "plutchik":{"primary":"anticipation", "intensity":0.6}, "tone":"anxious"}
+{"id":"emo_hard_015", "text":"He winced at the interruption, tapping his pen in mild annoyance.", "intent":"disturbed", "plutchik":{"primary":"anger", "intensity":0.2}, "tone":"bothered"}
+{"id":"emo_hard_016", "text":"The unusual aroma in the room made him wrinkle his nose involuntarily.", "intent":"react_smell", "plutchik":{"primary":"disgust", "intensity":0.2}, "tone":"amused"}
+
+{"id":"emo_hard_017", "text":"A smiling handshake was exchanged through teary eyes.", "intent":"farewell", "plutchik":{"primary":"joy", "intensity":0.4, "secondary":"sadness"}, "tone":"bittersweet"}
+{"id":"emo_hard_018", "text":"She paused, uncertain, before the curtain rose, unsure if she was ready for what was next.", "intent":"prepare_performance", "plutchik":{"primary":"anticipation", "intensity":0.3, "secondary":"fear"}, "tone":"hesitant"}

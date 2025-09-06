@@ -1,0 +1,22 @@
+{"id":"emo_test_001", "text":"I'm brimming with joy after hearing the good news!", "intent":"share_happiness", "plutchik":{"primary":"joy", "intensity":1.0}, "tone":"euphoric"}
+{"id":"emo_test_002", "text":"I absolutely trust my mentor to guide me through this challenge.", "intent":"seek_guidance", "plutchik":{"primary":"trust", "intensity":0.9}, "tone":"comforted"}
+{"id":"emo_test_003", "text":"Fear gripped me as the storm intensified.", "intent":"express_fear", "plutchik":{"primary":"fear", "intensity":0.95, "secondary":"anxiety"}, "tone":"terrified"}
+{"id":"emo_test_004", "text":"Wow, what an astonishing surprise to see everyone gathered!", "intent":"receive_surprise", "plutchik":{"primary":"surprise", "intensity":0.85}, "tone":"amazed"}
+{"id":"emo_test_005", "text":"The sadness from losing a beloved pet is overwhelming.", "intent":"mourn", "plutchik":{"primary":"sadness", "intensity":1.0}, "tone":"grieving"}
+{"id":"emo_test_006", "text":"I'm full of anticipation for tomorrow's competition.", "intent":"look_forward", "plutchik":{"primary":"anticipation", "intensity":0.9, "secondary":"hope"}, "tone":"eager"}
+{"id":"emo_test_007", "text":"Anger surged inside me when they insulted my friend.", "intent":"defend_friend", "plutchik":{"primary":"anger", "intensity":1.0, "secondary":"indignation"}, "tone":"fiery"}
+{"id":"emo_test_008", "text":"Disgust washes over me at the sight of spoiled food.", "intent":"avoid_contamination", "plutchik":{"primary":"disgust", "intensity":1.0}, "tone":"repulsed"}
+
+{"id":"emo_test_009", "text":"I'm only mildly happy about the outcome.", "intent":"modest_happiness", "plutchik":{"primary":"joy", "intensity":0.3}, "tone":"content"}
+{"id":"emo_test_010", "text":"A sense of trust, though not entirely complete, is present.", "intent":"cautious_trust", "plutchik":{"primary":"trust", "intensity":0.4}, "tone":"considerate"}
+{"id":"emo_test_011", "text":"I'm slightly afraid but still managing.", "intent":"manage_fear", "plutchik":{"primary":"fear", "intensity":0.2}, "tone":"nervous"}
+{"id":"emo_test_012", "text":"A gentle surprise made the evening special.", "intent":"gentle_surprise", "plutchik":{"primary":"surprise", "intensity":0.3}, "tone":"pleased"}
+{"id":"emo_test_013", "text":"A faint sadness lingers but I'm moving forward.", "intent":"light_sadness", "plutchik":{"primary":"sadness", "intensity":0.2}, "tone":"resigned"}
+{"id":"emo_test_014", "text":"Mild anticipation before my birthday.", "intent":"birthday_anticipation", "plutchik":{"primary":"anticipation", "intensity":0.2}, "tone":"calm"}
+{"id":"emo_test_015", "text":"Some anger, but it's under control.", "intent":"manage_anger", "plutchik":{"primary":"anger", "intensity":0.3}, "tone":"frustrated"}
+{"id":"emo_test_016", "text":"A small amount of disgust when I saw the mess.", "intent":"see_mess", "plutchik":{"primary":"disgust", "intensity":0.2}, "tone":"bothered"}
+
+{"id":"emo_test_017", "text":"Totally mixed feelings; both joy and sadness together.", "intent":"mixed_emotion", "plutchik":{"primary":"joy", "intensity":0.5, "secondary":"sadness"}, "tone":"bittersweet"}
+{"id":"emo_test_018", "text":"Not sure what I feel—maybe a little surprise and anticipation.", "intent":"uncertain_feelings", "plutchik":{"primary":"surprise", "intensity":0.3, "secondary":"anticipation"}, "tone":"pensive"}
+
+{"id":"emo_test_019", "text":"No clear emotion, just a blank state.", "intent":"blank", "plutchik":{"primary":"joy", "intensity":0.0}, "tone":"neutral"}
