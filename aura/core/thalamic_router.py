@@ -378,7 +378,19 @@ class ThalamicConversationRouter:
             plan['routing_sequence'] = [primary, 'general_chat']
         self.routing_stats[primary] = self.routing_stats.get(primary, 0) + 1
         self.routing_history.append({'query': user_query, 'routing_decision': routing_decision, 'routing_plan': plan, 'timestamp': len(self.routing_history)})
+        
+        # Remember winners for dopamine reward
+        self._remember_winners([primary] + routing_decision.get('secondary_targets', []))
+        
         return plan
+
+    def _remember_winners(self, idxs):
+        """Remember winners for dopamine reward"""
+        try:
+            import numpy as np
+            self.last_winners = np.array(list(map(int, idxs)), dtype=np.int64)
+        except Exception:
+            self.last_winners = None
 
     async def adaptive_routing_update(self, routing_plan: Dict[str, Any], conversation_outcome: Dict[str, Any], query_features: np.ndarray) -> None:
         success_score = float(conversation_outcome.get('user_satisfaction', 0.5))
@@ -412,6 +424,24 @@ class ThalamicConversationRouter:
         if meta.get('is_analytical'): bits.append('analytical intent')
         if not bits: bits.append('general chat indicators')
         return f"Routed to {primary} (conf={conf:.2f}) via {strategy} due to {', '.join(bits)}."
+
+    async def process(self, input_data: np.ndarray) -> Dict[str, Any]:
+        """Process input through the thalamic router with Qdrant streaming"""
+        # Analyze the input to determine routing characteristics
+        query_text = ""  # We don't have text in this context, but we can still analyze features
+        characteristics = self._analyze_query_characteristics(query_text)
+        
+        # Get routing decision
+        routing_decision = self.analyze_conversation_intent(query_text, input_data)
+        
+        # Route the conversation
+        routing_result = self.route_conversation(routing_decision, query_text, input_data)
+        
+        return {
+            'routing_decision': routing_decision,
+            'routing_result': routing_result,
+            'characteristics': characteristics
+        }
 
     async def init_weights(self):
         """Initialize weights for all neurons in the thalamic router"""

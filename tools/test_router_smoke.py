@@ -153,7 +153,8 @@ def main():
     print("=" * 50)
     
     # Run async test
-    success = asyncio.run(test_router_confidence_and_usage())
+    import trio
+    success = trio.run(test_router_confidence_and_usage)
     
     if success:
         print("\n🎉 All tests passed!")

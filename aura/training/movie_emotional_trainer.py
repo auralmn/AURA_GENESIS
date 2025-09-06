@@ -478,4 +478,5 @@ async def test_movie_trainer():
 if __name__ == "__main__":
     # Run test if executed directly
     import asyncio
-    asyncio.run(test_movie_trainer())
+    import trio
+    trio.run(test_movie_trainer)

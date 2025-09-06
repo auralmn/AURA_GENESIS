@@ -51,6 +51,17 @@ class QdrantMapper:
             xs = xs + [0.0] * (self.vector_dim - len(xs))
         return xs[: self.vector_dim]
 
+    def _get_region_type(self, region: str) -> str:
+        """Map region names to their functional types"""
+        region_types = {
+            'thalamus': 'sensory_relay',
+            'hippocampus': 'memory_formation',
+            'amygdala': 'emotional_processing',
+            'router': 'routing_decision',
+            'cns': 'central_coordination'
+        }
+        return region_types.get(region, 'unknown')
+
     def map_neuron(self, neuron: Any, region: str) -> Dict[str, Any]:
         feats: List[float] = []
         # Basic neuron status features
@@ -76,14 +87,26 @@ class QdrantMapper:
         except Exception:
             pass
         feats = self._pad([float(x) for x in feats])
+        # Get neuron type and status information
+        maturation = getattr(neuron, 'maturation', None)
+        activity = getattr(neuron, 'activity', None)
+        
         payload = {
             'neuron_id': getattr(neuron, 'neuron_id', 'unknown'),
             'region': region,
+            'region_type': self._get_region_type(region),
             'specialization': getattr(neuron, 'specialization', ''),
+            'neuron_type': 'neuron',
+            'maturation_stage': maturation.name if maturation else 'unknown',
+            'activity_state': activity.name if activity else 'unknown',
+            'membrane_potential': float(getattr(neuron, 'membrane_potential', 0.0)),
+            'synapse_count': len(getattr(neuron, 'synapses', []) or []),
+            'spike_count': len(getattr(neuron, 'spike_history', []) or []),
             'abilities': abilities,
+            'primary_ability': max(abilities.items(), key=lambda x: x[1])[0] if abilities else 'none',
             'timestamp': datetime.now().isoformat(),
         }
-        return {'id': f"neuron_{payload['neuron_id']}_{region}", 'vector': feats, 'payload': payload}
+        return {'id': str(uuid.uuid4()), 'vector': feats, 'payload': payload}
 
     def map_region(self, name: str, obj: Any, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         feats: List[float] = []
@@ -103,13 +126,23 @@ class QdrantMapper:
         else:
             feats.append(0.0)
         feats = self._pad(feats)
+        
+        # Calculate region statistics
+        active_neurons = sum(1 for n in neurons if getattr(n, 'activity', None) and getattr(n.activity, 'name', '') == 'ACTIVE')
+        avg_membrane_potential = np.mean([getattr(n, 'membrane_potential', 0.0) for n in neurons]) if neurons else 0.0
+        
         payload = {
             'region_name': name,
-            'type': type(obj).__name__,
+            'region_type': self._get_region_type(name),
+            'object_type': type(obj).__name__,
+            'neuron_count': len(neurons),
+            'active_neuron_count': active_neurons,
+            'avg_membrane_potential': float(avg_membrane_potential),
+            'activity_ratio': float(active_neurons / len(neurons)) if neurons else 0.0,
             'timestamp': datetime.now().isoformat(),
             'context': context or {},
         }
-        return {'id': f'region_{name}', 'vector': feats, 'payload': payload}
+        return {'id': str(uuid.uuid4()), 'vector': feats, 'payload': payload}
 
     def map_routing(self, decision: Dict[str, Any], query_vec: np.ndarray) -> Dict[str, Any]:
         base = query_vec.astype(np.float32).reshape(-1)
@@ -122,12 +155,23 @@ class QdrantMapper:
         ]
         # place tail at the end
         vec[-len(tail):] = tail
+        # Extract routing information
+        primary_target = decision.get('primary_target', 'unknown')
+        routing_strategy = decision.get('routing_strategy', 'unknown')
+        query_characteristics = decision.get('query_characteristics', {})
+        
         payload = {
-            'primary_target': decision.get('primary_target'),
-            'routing_strategy': decision.get('routing_strategy'),
+            'primary_target': primary_target,
+            'routing_strategy': routing_strategy,
+            'routing_type': 'routing_decision',
+            'confidence': float(decision.get('routing_confidence', 0.0)),
+            'needs_multiple_specialists': bool(decision.get('needs_multiple_specialists', False)),
+            'secondary_targets_count': len(decision.get('secondary_targets', [])),
+            'complexity_score': float(query_characteristics.get('complexity_score', 0.0)),
+            'query_type': query_characteristics.get('query_type', 'unknown'),
             'timestamp': datetime.now().isoformat(),
         }
-        return {'id': f'routing_{uuid.uuid4()}', 'vector': self._pad(vec), 'payload': payload}
+        return {'id': str(uuid.uuid4()), 'vector': self._pad(vec), 'payload': payload}
 
     def upsert_points(self, collection: str, points: List[Dict[str, Any]]) -> None:
         if self.client is None:

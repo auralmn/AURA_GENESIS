@@ -858,4 +858,5 @@ async def train_aura_causal_intelligence():
 
 # Run causal intelligence training
 if __name__ == "__main__":
-    asyncio.run(train_aura_causal_intelligence())
+    import trio
+    trio.run(train_aura_causal_intelligence)

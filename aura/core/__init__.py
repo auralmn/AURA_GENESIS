@@ -12,7 +12,7 @@ from .population import NeuronPopulation
 from .personality import PersonalityProfile
 from .phasor import PhasorBank, PhasorState
 from .neuronal_state import NeuronalState, NeuronalStateEnum
-from .nlms import NLMSHead, NLMS, SpikingAttention
+from .nlms import NLMSHead, SpikingAttention
 from .spiking_attention import SpikingAttention as SpikingAttentionEnhanced
 from .state_machine import NeuronStateMachine
 from .specialists import SpecialistRegistry
@@ -36,7 +36,6 @@ __all__ = [
     'NeuronalState',
     'NeuronalStateEnum',
     'NLMSHead',
-    'NLMS',
     'SpikingAttention',
     'SpikingAttentionEnhanced',
     'NeuronStateMachine',

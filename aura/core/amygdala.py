@@ -118,6 +118,25 @@ class Amygdala:
             social_threat_level = min(1.0, social_threat_level + boost)
         return {'social_threat_level': social_threat_level, 'group_stability': 1.0 - social_threat_level}
 
+    async def process(self, input_data: np.ndarray) -> dict:
+        """Process input through the amygdala"""
+        # Process threat assessment
+        threat_assessment = self.process_threat(input_data)
+        
+        # Process emotional salience
+        emotional_salience = self.process_emotional_salience(input_data)
+        
+        # Assess social threat
+        social_threat = self.assess_social_threat(input_data)
+        
+        return {
+            'threat_assessment': threat_assessment,
+            'emotional_salience': emotional_salience,
+            'social_threat': social_threat,
+            'stress_level': self.stress_level,
+            'alert_state': self.alert_state
+        }
+
     async def fear_conditioning(self, input_pattern: np.ndarray, outcome: str, event_data: Dict[str, Any] | None = None) -> None:
         t_target = 1.0 if outcome == 'threatening' else 0.0
         for n in self.threat_detectors:

@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 from numpy import ndarray
 import numpy as np
@@ -52,45 +52,9 @@ class Head(ABC):
         pass
 
 
-@dataclass
-class NLMS:
-    n_features: int
-    n_outputs: int
-    mu: float = 0.8
-    l2_decay: float = 0.0
-    clip01: bool = True
-    nonneg_z: bool = True
-    normalize: bool = True
-    seed: int = 7
-    W: ndarray = field(init=False, default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
-
-def __init__(self, n_features: int, n_outputs: int, mu: float = 0.8, 
-             l2_decay: float = 0.0, clip01: bool = True, nonneg_z: bool = True, 
-             normalize: bool = True, seed: int = 7, tok_slice: slice = slice(0, 0), 
-             pos_slice: slice | None = None, realm_slice: slice = slice(0, 0), 
-             phase_slice: slice = slice(0, 0), ctop_idx: int | None = None, 
-             prosody_idx: int | None = None,
-             # NEW: Add attention parameters
-             enable_attention: bool = False,
-             attention_config: Dict | None = None,
-             vocab_size: int = 50000):        # Store configuration and initialize matrix weights
-        self.n_features = int(n_features)
-        self.n_outputs = int(n_outputs)
-        self.mu = float(mu)
-        self.l2_decay = float(l2_decay)
-        self.clip01 = bool(clip01)
-        self.nonneg_z = bool(nonneg_z)
-        self.normalize = bool(normalize)
-        self.seed = int(seed)
-        self.rng = np.random.default_rng(self.seed)
-        self.W = np.zeros((self.n_features, self.n_outputs), dtype=np.float64)
-        self.enable_attention = enable_attention
-        if enable_attention:
-            config = attention_config or {}
-            self.spiking_attention = SpikingAttention(**config)
-            self.vocab_size = vocab_size
-        else:
-            self.spiking_attention = None
+# NOTE: We intentionally remove the legacy NLMS matrix class.
+# Keeping two "NLMS" variants caused import/namespace confusion and a stray, unbound __init__.
+# If you truly need a matrix NLMS later, we'll add a separate module (e.g., matrix_nlms.py).
 
 
 class NLMSHead(Head):
@@ -144,16 +108,15 @@ class NLMSHead(Head):
         self.ctop_idx = ctop_idx
         # Ensure consistent naming; store prosody gate index as pros_idx
         self.pros_idx = prosody_idx
+        # --- FIX: actually store attention flags/config so attention paths can run ---
+        self.enable_attention = bool(enable_attention)
+        self.attention_config = dict(attention_config) if attention_config else None
+        self.vocab_size = int(vocab_size)
         
         self._lock = trio.Lock()
         # Initialize weight matrix so step() can run before attach()
         self.w = np.zeros((self.n_features, self.n_outputs), dtype=np.float64)
-        if enable_attention:
-            config = attention_config or {}
-            self.spiking_attention = SpikingAttention(**config)
-            self.vocab_size = vocab_size
-        else:
-            self.spiking_attention = None
+        self.spiking_attention = SpikingAttention(**self.attention_config) if self.enable_attention else None
      
     async def attach(self, base_w: np.ndarray,
                tok_slice: slice, realm_slice: slice, phase_slice: slice,
@@ -235,7 +198,7 @@ class NLMSHead(Head):
             self.w = (1.0 - float(self.l2_decay)) * self.w + (mu_vec[:, None] * grad)
             return y_out
         
-    async def step_with_attention(self, x: np.ndarray, y_true: np.ndarray | float, 
+    async def step_with_attention(self, x: np.ndarray, y_true: Union[np.ndarray, float], 
                             token_sequence: Optional[List[int]] = None,
                             multi_channel_attention: Optional[Dict[str, object]] = None) -> float:
         """NLMS step with optional attention modulation (supports both old and new attention systems)"""
@@ -267,14 +230,14 @@ class NLMSHead(Head):
     async def step_with_multi_channel_attention(
         self, 
         x: np.ndarray, 
-        y_true: np.ndarray | float,
+        y_true: Union[np.ndarray, float],
         token_ids: List[int],
         amp: np.ndarray,
         pitch: np.ndarray,
         boundary: np.ndarray,
         multi_channel_attention,
         token_to_feature: Optional[Dict[int, int]] = None
-    ) -> float:
+    ) -> Union[np.ndarray, float]:
         """NLMS step with multi-channel spiking attention modulation"""
         if not self.enable_attention:
             return await self.step(x, y_true)
@@ -367,7 +330,7 @@ class NLMSHead(Head):
         return np.clip(y, lo, hi)
 
     # convenience for codepaths that used a sync API
-    def update(self, X: np.ndarray, Y: np.ndarray | float) -> np.ndarray:
+    def update(self, X: np.ndarray, Y: Union[np.ndarray, float]) -> np.ndarray:
         # one-step synchronous shim
         return trio.run(self.step, X, Y)
 

@@ -416,8 +416,9 @@ if __name__ == "__main__":
     print("integrating your neural architecture with enhanced SVC features")
     print()
     
-    # Run the async pipeline
-    success = asyncio.run(main())
+    # Run the async pipeline with trio
+    import trio
+    success = trio.run(main)
     
     if success:
         print("\n🚀 Your Bio-SVC system is ready!")

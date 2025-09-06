@@ -80,6 +80,21 @@ class CentralNervousSystem:
             'threat_level': self.threat_level,
         }
 
+    async def process(self, input_data: np.ndarray) -> dict:
+        """Process input through the central nervous system"""
+        # Assess global state
+        global_state = self.assess_global_state()
+        
+        # Coordinate with context
+        context = {'type': 'general', 'threat': 0.0}
+        coordination = await self.coordinate(context)
+        
+        return {
+            'global_state': global_state,
+            'coordination': coordination,
+            'region_states': self.region_states
+        }
+
     async def coordinate(self, context: Dict[str, Any]) -> Dict[str, Any]:
         # Update attention mode
         self.attention_mode = AttentionMode[self.cns_relay.suggest_attention_mode(context)]

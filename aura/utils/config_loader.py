@@ -375,7 +375,7 @@ class ConfigLoader:
             logger.warning(f"Models directory does not exist: {config.models_dir_path}")
         
         # Validate device type
-        valid_devices = ['cpu', 'cuda', 'mps']
+        valid_devices = ['cpu', 'cuda', 'cuda']
         if config.device_type not in valid_devices:
             errors.append(f"device_type must be one of {valid_devices}")
         

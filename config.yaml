@@ -153,7 +153,7 @@ logging:
 
 # Device Configuration
 device:
-  type: "mps"  # 'cpu', 'cuda', 'mps'
+  type: "mps"  # 'cpu', 'cuda', 'cuda'
   fallback_to_cpu: true
 
 # Training Configuration
@@ -186,9 +186,25 @@ qdrant:
     snapshot_interval: 50  # operations
     auto_snapshot: true
   environment_vars:
-    AURA_QDRANT_STREAM: "0"
+    AURA_QDRANT_STREAM: "1"
     QDRANT_URL: "http://localhost"
     QDRANT_PORT: "6333"
+
+# Qdrant Vector Database Configuration
+qdrant:
+  enabled: true
+  url: "http://localhost"
+  port: 6333
+  vector_dim: 384
+  collections:
+    neurons: "bio_neurons"
+    regions: "bio_regions"
+    routing: "bio_routing"
+  streaming:
+    enabled: true
+    snapshot_interval: 50  # Take snapshots every N events
+    auto_upsert: true      # Automatically upsert routing decisions
+    batch_size: 256        # Batch size for neuron updates
 
 # Development Configuration
 development:

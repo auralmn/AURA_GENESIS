@@ -179,7 +179,8 @@ def main():
                 o.plot_out = None
                 o.metrics_csv = None
                 try:
-                    _asyncio.run(run_svc(o))
+                    import trio
+                    trio.run(run_svc, o)
                 except Exception as e:
                     print(f"SVC trainer failed on {fp}: {e}")
             elif 'historical' in name or 'historical' in path_lower:

@@ -1,0 +1,513 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA Live Health Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            background: rgba(0,255,0,0.2);
+            border: 1px solid #00ff00;
+            margin-left: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #ffd700;
+            border-bottom: 2px solid #ffd700;
+            padding-bottom: 10px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            font-weight: bold;
+        }
+        .metric-value {
+            color: #00ff00;
+        }
+        .warning {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 15px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            opacity: 0.7;
+        }
+        .auto-refresh {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="auto-refresh">
+        🔄 Auto-refresh: 2.0s<br>
+        📊 Snapshots: 5<br>
+        ⚠️ Collapse warnings: 0
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🧠 AURA Live Health Monitor</h1>
+            <div class="status">🟢 ACTIVE</div>
+        </div>
+        
+        <div class="grid">
+            <!-- Hormone Levels -->
+            <div class="card">
+                <h3>🧬 Hormone Levels</h3>
+                
+            <div class="metric">
+                <span class="metric-label">Hormonetype.Cortisol:</span>
+                <span class="metric-value">0.237</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Hormonetype.Growth Hormone:</span>
+                <span class="metric-value">0.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Hormonetype.Thyroid:</span>
+                <span class="warning">2.463</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Hormonetype.Insulin:</span>
+                <span class="metric-value">0.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Hormonetype.Dopamine:</span>
+                <span class="metric-value">0.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Hormonetype.Norepinephrine:</span>
+                <span class="metric-value">0.393</span>
+            </div>
+            
+            </div>
+            
+            <!-- Endocrine Effects -->
+            <div class="card">
+                <h3>⚡ Endocrine Effects</h3>
+                <div class='metric'><span class='metric-label'>No effects</span></div>
+            </div>
+            
+            <!-- Router Usage -->
+            <div class="card">
+                <h3>🎯 Router Usage</h3>
+                
+            <div class="metric">
+                <span class="metric-label">General Chat:</span>
+                <span class="metric-value">1 (20.0%)</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Historical Specialist:</span>
+                <span class="metric-value">1 (20.0%)</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Amygdala Specialist:</span>
+                <span class="metric-value">1 (20.0%)</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Analytical Specialist:</span>
+                <span class="metric-value">1 (20.0%)</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Multi Specialist:</span>
+                <span class="metric-value">1 (20.0%)</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Hippocampus Specialist:</span>
+                <span class="warning">0 (0.0%)</span>
+            </div>
+            
+                <div class="chart-container">
+                    <canvas id="routerChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Expert Utilization -->
+            <div class="card">
+                <h3>🔬 Expert Utilization</h3>
+                
+            <div class="metric">
+                <span class="metric-label">Domain Classifier:</span>
+                <span class="warning">0.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Realm Classifier:</span>
+                <span class="warning">0.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Difficulty Regressor:</span>
+                <span class="warning">0.000</span>
+            </div>
+            
+                <div class="chart-container">
+                    <canvas id="expertChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- System Metrics -->
+            <div class="card">
+                <h3>📊 System Metrics</h3>
+                
+            <div class="metric">
+                <span class="metric-label">Energy Efficiency:</span>
+                <span class="metric-value">0.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Expert Utilization:</span>
+                <span class="metric-value">0.226</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Prediction Accuracy:</span>
+                <span class="metric-value">0.113</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Learning Rate:</span>
+                <span class="metric-value">0.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Stress Level:</span>
+                <span class="metric-value">0.298</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Temperature:</span>
+                <span class="metric-value">1.000</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Overall Health:</span>
+                <span class="metric-value">0.510</span>
+            </div>
+            
+            </div>
+            
+            <!-- Energy & Performance -->
+            <div class="card">
+                <h3>⚡ Energy & Performance</h3>
+                <div class="metric">
+                    <span class="metric-label">Energy Consumption:</span>
+                    <span class="metric-value">2.30e-08 J</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Prediction Accuracy:</span>
+                    <span class="metric-value">0.500</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Routing Decisions:</span>
+                    <span class="metric-value">0</span>
+                </div>
+            </div>
+        </div>
+        
+            <!-- Firing Patterns -->
+            <div class="card">
+                <h3>🔥 Firing Patterns</h3>
+                <div class='metric'><span class='metric-label'>No recent firing activity</span></div>
+            </div>
+            
+            <!-- Active Alerts -->
+            <div class="card">
+                <h3>🚨 Active Alerts</h3>
+                
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_5: Low firing rate: 0.0000
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_5: Low weight magnitude: 0.00e+00
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_6: Low firing rate: 0.0000
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_6: Low weight magnitude: 0.00e+00
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_7: Low firing rate: 0.0000
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_7: Low weight magnitude: 0.00e+00
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_8: Low firing rate: 0.0000
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_8: Low weight magnitude: 0.00e+00
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_9: Low firing rate: 0.0000
+        </div>
+        
+        <div class="metric" style="border-left: 4px solid #ffd93d; padding-left: 10px;">
+            <span class="metric-label" style="color: #ffd93d;">
+                [WARNING] NEURON
+            </span>
+            <span class="metric-value" style="color: #ffd93d;">
+                5s ago
+            </span>
+        </div>
+        <div class="metric" style="margin-left: 20px; font-size: 0.9em; color: #cccccc;">
+            Neuron router_multi_specialist_9: Low weight magnitude: 0.00e+00
+        </div>
+        
+            </div>
+            
+            <!-- Recent Routing Decisions -->
+            <div class="card">
+                <h3>🔄 Recent Routing Decisions</h3>
+                
+            <div class="metric">
+                <span class="metric-label">Decision 1:</span>
+                <span class="metric-value">historical_specialist (0.35) - ""</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Decision 2:</span>
+                <span class="metric-value">amygdala_specialist (0.35) - ""</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Decision 3:</span>
+                <span class="metric-value">analytical_specialist (0.64) - ""</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Decision 4:</span>
+                <span class="metric-value">general_chat (0.48) - ""</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-label">Decision 5:</span>
+                <span class="metric-value">multi_specialist (0.35) - ""</span>
+            </div>
+            
+            </div>
+        
+        <div class="footer">
+            <p>🕒 Last Updated: 2025-09-06 11:33:06</p>
+            <p>🔄 Auto-refresh every 2.0 seconds</p>
+        </div>
+    </div>
+    
+    <script>
+        // Router Usage Chart
+        const routerCtx = document.getElementById('routerChart').getContext('2d');
+        new Chart(routerCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ["general_chat", "historical_specialist", "amygdala_specialist", "hippocampus_specialist", "analytical_specialist", "multi_specialist"],
+                datasets: [{
+                    data: [1, 1, 1, 0, 1, 1],
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: 'white' }
+                    }
+                }
+            }
+        });
+        
+        // Expert Utilization Chart
+        const expertCtx = document.getElementById('expertChart').getContext('2d');
+        new Chart(expertCtx, {
+            type: 'bar',
+            data: {
+                labels: ["domain_classifier", "realm_classifier", "difficulty_regressor"],
+                datasets: [{
+                    label: 'Utilization',
+                    data: [0.0, 0.0, 0.0],
+                    backgroundColor: 'rgba(0, 255, 0, 0.6)',
+                    borderColor: 'rgba(0, 255, 0, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    x: {
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: 'white' }
+                    }
+                }
+            }
+        });
+        
+        // Auto-refresh every 2.0 seconds
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    </script>
+</body>
+</html>

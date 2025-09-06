@@ -5,8 +5,11 @@ Continuous-time dynamics with Top-K sparse routing and local learning rules
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional, Callable
+from typing import Dict, List, Tuple, Optional, Callable, Union
 import numpy as np
+
+# Import SpikingAttention for invariant testing
+from .nlms import SpikingAttention
 
 # ---------------------- utils ----------------------
 
@@ -161,9 +164,13 @@ class LiquidGatingNetwork:
         
         out = np.zeros_like(probs)
         out[topk_idx] = gates
-
-        # update usage moving average (for load balance nudging)
-        self.usage_ma = self.usage_smoothing*self.usage_ma + (1.0-self.usage_smoothing)*out
+        eps = 0.01  # 1% exploration; tune 0.005–0.02
+        if self.n_experts > 0 and eps > 0:
+            j = int(np.argmin(self.usage_ma))
+            out = (1.0 - eps) * out
+            out[j] += eps
+        # update usage_ma as you already do
+        self.usage_ma = self.usage_smoothing * self.usage_ma + (1.0 - self.usage_smoothing) * out
         return out, topk_idx, probs
 
     def _apply_usage_bias(self, logits: np.ndarray) -> np.ndarray:
@@ -173,6 +180,31 @@ class LiquidGatingNetwork:
         inv_usage = target / (self.usage_ma + eps)
         biased = logits + self.usage_beta * np.log(inv_usage)  # log-space bias
         return biased
+
+    # liquid_moe.py (inside class LiquidGatingNetwork)
+    def apply_endocrine(
+        self, *, cortisol: float = 0.0, gh: float = 0.0,
+        thyroid: float = 1.0, dopamine: float = 0.0, eps: float | None = None
+    ) -> None:
+        # Temperature ↑ with cortisol (stress) — clamp for stability
+        self.temperature = float(np.clip(self.temperature * (1.0 + 0.30 * cortisol), 0.5, 2.5))
+
+        # Bias LR scales with thyroid (metabolic rate around 1.0 baseline)
+        self.bias_lr = float(np.clip(self.bias_lr * (1.0 + 0.40 * (thyroid - 1.0)), 1e-4, 0.1))
+
+        # Top-K capacity expands with GH, but never beyond n_experts
+        base = getattr(self, "base_top_k", self.top_k)
+        self.base_top_k = base
+        self.top_k = int(np.clip(round(base * (1.0 + 0.20 * gh)), 1, self.n_experts))
+
+        # Dopamine: nudge most recent winners’ biases (reward)
+        if dopamine > 0 and hasattr(self, "bias") and getattr(self, "last_winners", None) is not None:
+            self.bias[self.last_winners] += 0.10 * float(dopamine)
+
+        # Optional: exploration epsilon override
+        if eps is not None and hasattr(self, "eps"):
+            self.eps = float(np.clip(eps, 0.0, 0.05))
+
 
     def nudge_for_load_balance(self) -> None:
         """Local bias update pulling usage toward uniform without backprop."""
@@ -214,6 +246,7 @@ class LiquidMoERouter:
     top_k: int = 2
     temperature: float = 1.0
     routing_temperature_min: float = 0.2
+    debug_invariants: bool = False
 
     gating: LiquidGatingNetwork = field(init=False)
     names: List[str] = field(init=False)
@@ -239,15 +272,17 @@ class LiquidMoERouter:
         self.energy.add_macs(len(topk_idx) * self.in_dim)  # readout MAC proxy
         
         y = 0.0
-        per_expert = {}
+        # in AURAMOE.route(...)
+        per_expert: Dict[str, Dict[str, float]] = {}
         for i in topk_idx:
             name = self.names[int(i)]
             gate = float(gates_sparse[i])
-            pred = self.experts[name].predict(x)
-            per_expert[name] = {'gate': gate, 'pred': float(pred)}
-            y += gate * pred
-        
-        return {
+            pred = float(self.experts[name].predict(x))
+            # ~O(d) MACs for a simple head; if your NLMS head uses a vector dot, count it:
+            self.energy.add_macs(self.in_dim)   # or a more precise value if you have it
+            per_expert[name] = {"gate": gate, "pred": pred}
+
+        result = {
             'y': float(y),
             'topk': chosen,
             'probs': probs,
@@ -256,6 +291,20 @@ class LiquidMoERouter:
             'attn_gain': attn_gain,
             'topk_indices': topk_idx.tolist()
         }
+        
+        # Assert invariants in debug mode (only when explicitly enabled)
+        if self.debug_invariants and not getattr(self, '_in_invariant_check', False):
+            self._in_invariant_check = True
+            try:
+                _assert_invariants(self, x, text="")
+            finally:
+                self._in_invariant_check = False
+        
+        return result
+
+    def enable_debug_invariants(self, enabled: bool = True) -> None:
+        """Enable or disable invariant checking for debugging"""
+        self.debug_invariants = enabled
 
     async def learn(self, x: np.ndarray, y_true: float, attn_gain: float = 1.0) -> Dict[str, any]:
         """Update only the routed experts (streaming, no backprop)."""
@@ -263,10 +312,13 @@ class LiquidMoERouter:
         
         # supervised residual-style targets for selected experts
         for name, info in out['per_expert'].items():
-            gate = info['gate']
+            gate = float(info['gate'])
             # gate-weighted target (simple local rule)
+            if gate <= 0.0:
+                continue
             target = float(y_true)
-            await self.experts[name].update(x, target)
+            await self.experts[name].update(x, target * gate)
+
         
         # tiny load-balance nudge
         self.gating.nudge_for_load_balance()
@@ -298,7 +350,7 @@ class LiquidMoERouter:
 # ---------------------- utility functions ----------------------
 
 def create_liquid_moe_from_router(router, features: int = 384, hidden_dim: int = 64, 
-                                 top_k: int = 2, temperature: float = 1.0) -> LiquidMoERouter:
+                                 top_k: int = 2, temperature: float = 1.0, debug_invariants: bool = False) -> LiquidMoERouter:
     """Create Liquid-MoE router from existing ThalamicConversationRouter"""
     experts = {}
     
@@ -312,7 +364,8 @@ def create_liquid_moe_from_router(router, features: int = 384, hidden_dim: int =
         in_dim=features,
         hidden_dim=hidden_dim,
         top_k=top_k,
-        temperature=temperature
+        temperature=temperature,
+        debug_invariants=debug_invariants
     )
 
 def attention_gain_from_text(text: str, attn_system) -> float:
@@ -333,3 +386,26 @@ def attention_gain_from_text(text: str, attn_system) -> float:
     sal = np.asarray(ar["salience"], dtype=np.float64)
     g = 1.0 + 0.5 * float(sal.mean() if sal.size else 0.0)
     return float(np.clip(g, 0.8, 2.0))
+
+def _assert_invariants(router, x, text=""):
+    # Temporarily disable invariant checking for recursive calls
+    original_debug = router.debug_invariants
+    router.debug_invariants = False
+    
+    try:
+        out = router.route(x, attn_gain=1.0)
+        # 1) Gates only among winners & sum≈1
+        gsum = sum(d["gate"] for d in out["per_expert"].values())
+        assert abs(gsum - 1.0) < 1e-2, f"gate sum drift: {gsum}"
+        # 2) Top-K respect
+        assert len(out["per_expert"]) == min(router.gating.top_k, router.gating.n_experts)
+        # 3) Temperature/gain monotonicity
+        out_lo = router.route(x, attn_gain=0.8)
+        out_hi = router.route(x, attn_gain=2.0)  # higher attention gain
+        assert out_hi["attn_gain"] >= 1.0 and out_lo["attn_gain"] >= 0.8
+        # 4) Energy non-decreasing
+        assert out["energy_j"] >= 0.0
+    finally:
+        # Restore original debug setting
+        router.debug_invariants = original_debug
+

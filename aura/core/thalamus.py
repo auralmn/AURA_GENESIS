@@ -44,6 +44,17 @@ class Thalamus:
             gout = gout[:n]
         return [neuron.get_readout(gout) for neuron in self.neurons]
 
+    async def process(self, input_data: np.ndarray) -> dict:
+        """Process input through the thalamus"""
+        # Use the relay method to process input
+        outputs = self.relay(input_data)
+        
+        return {
+            'gated_output': outputs,
+            'gating_strength': self.thalamus_relay.gating_strength,
+            'neuron_count': len(self.neurons)
+        }
+
     async def process_specialists(self, task_type: str, target_key: str, features) -> dict:
         """Route features to specialists of a given task family.
         - task_type: e.g., 'domain', 'realm', 'era', 'svc_subject'

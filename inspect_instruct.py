@@ -3,7 +3,7 @@
 import argparse, json, re, sys
 from collections import Counter
 import torch
-torch.device('mps')
+torch.device('cuda')
 
 PAIR_RE = re.compile(
     r'(?s)\s*<human>:\s*(.*?)\s*<bot>:\s*(.*)\s*$'
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     from sentence_transformers import SentenceTransformer
     import numpy as np, json
 
-    m = SentenceTransformer('all-MiniLM-L6-v2', device='cuda' if torch.cuda.is_available() else 'mps')
+    m = SentenceTransformer('all-MiniLM-L6-v2', device='cuda' if torch.cuda.is_available() else 'cuda')
     B = 512
     buf, feats = [], []
     with open('datasets/instruction_tuning/instruct_55k.jsonl','r') as f:

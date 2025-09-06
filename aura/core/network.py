@@ -17,6 +17,9 @@ from .thalamic_router import ThalamicConversationRouter
 from .central_nervous_system import CentralNervousSystem
 from .thalamus import Thalamus
 from .neuron import Neuron, MaturationStage, ActivityState
+from .hippothalamus import Hypothalamus, Pituitary, SystemMetrics, HormoneType
+
+# Qdrant streaming - import only when needed to avoid circular imports
 
 # SPAN integration - commented out to avoid circular import
 # from ..training.span_integration import SPANNeuron, SPANPattern, create_final_precision_span_patterns
@@ -66,6 +69,18 @@ class Network:
         features_alpha: float = 0.7,   # weight on SBERT when combined
         weights_dir: str = 'svc_nlms_weights',
         startnew: bool = False,
+        
+        # Qdrant streaming parameters
+        enable_qdrant: bool = True,
+        qdrant_url: str = 'http://localhost',
+        qdrant_port: int = 6333,
+        qdrant_snapshot_interval: int = 50,
+        
+        # Neuroendocrine control parameters
+        enable_neuroendocrine: bool = True,
+        target_energy_efficiency: float = 1e-10,
+        target_expert_utilization: float = 0.8,
+        target_prediction_accuracy: float = 0.85,
     ):
         # Store parameters
         self.neuron_count = neuron_count
@@ -87,6 +102,19 @@ class Network:
         self.features_alpha = features_alpha
         self.weights_dir = weights_dir
         self.startnew = startnew
+        
+        # Qdrant parameters
+        self.enable_qdrant = enable_qdrant
+        self.qdrant_url = qdrant_url
+        self.qdrant_port = qdrant_port
+        self.qdrant_snapshot_interval = qdrant_snapshot_interval
+        
+        # Neuroendocrine control parameters
+        self.enable_neuroendocrine = enable_neuroendocrine
+        self.enable_hippocampus_bias = True  # Enable memory-based routing bias
+        self.target_energy_efficiency = target_energy_efficiency
+        self.target_expert_utilization = target_expert_utilization
+        self.target_prediction_accuracy = target_prediction_accuracy
         
         # Initialize core brain regions
         self._thalamus = Thalamus(
@@ -114,6 +142,29 @@ class Network:
         self._cns.register_brain_region('amygdala', self._amygdala, priority=0.8)
         self._cns.register_brain_region('router', self._thalamic_router, priority=0.5)
         
+        # Initialize neuroendocrine control system
+        if self.enable_neuroendocrine:
+            target_metrics = SystemMetrics(
+                energy_efficiency=target_energy_efficiency,
+                expert_utilization=target_expert_utilization,
+                prediction_accuracy=target_prediction_accuracy,
+                learning_rate=0.1,
+                stress_level=0.2,
+                temperature=1.0
+            )
+            self._hypothalamus = Hypothalamus(target_metrics)
+            self._pituitary = Pituitary()
+            self._hormone_type = HormoneType
+            self._last_acc = 0.5
+            self._system_initialized = False
+            print("🧠 Neuroendocrine control system initialized")
+        else:
+            self._hypothalamus = None
+            self._pituitary = None
+            self._hormone_type = None
+            self._last_acc = 0.5
+            self._system_initialized = False
+        
         # Attention configurations
         self.attention_configs = {
         'historical': {'decay': 0.8, 'theta': 1.2, 'k_winners': 7, 'gain_up': 1.8, 'gain_down': 0.5},
@@ -133,16 +184,56 @@ class Network:
         self.specialists: Dict[str, Neuron] = {}
         self.sbert_model = None
         
+        # Initialize Qdrant streaming
+        if self.enable_qdrant:
+            from ..utils.qdrant_stream import QdrantStreamer
+            self.qdrant_streamer = QdrantStreamer(url=self.qdrant_url, port=self.qdrant_port)
+            print("✅ Qdrant streaming initialized")
+        else:
+            self.qdrant_streamer = None
+            print("⚠️  Qdrant streaming disabled")
+        
         # Initialize components
         self._setup_sbert()
         self._setup_specialists()
+    
+    def enable_qdrant_streaming(self, url: str = None, port: int = None, snapshot_interval: int = None) -> None:
+        """Enable Qdrant streaming with optional parameters"""
+        if url:
+            self.qdrant_url = url
+        if port:
+            self.qdrant_port = port
+        if snapshot_interval:
+            self.qdrant_snapshot_interval = snapshot_interval
+            
+        self.enable_qdrant = True
+        from ..utils.qdrant_stream import QdrantStreamer
+        self.qdrant_streamer = QdrantStreamer(url=self.qdrant_url, port=self.qdrant_port)
+        print("✅ Qdrant streaming enabled")
+    
+    def disable_qdrant_streaming(self) -> None:
+        """Disable Qdrant streaming"""
+        self.enable_qdrant = False
+        self.qdrant_streamer = None
+        print("⚠️  Qdrant streaming disabled")
+    
+    def load_qdrant_config(self, config: Dict[str, Any]) -> None:
+        """Load Qdrant configuration from config dictionary"""
+        qdrant_config = config.get('qdrant', {})
+        if qdrant_config.get('enabled', False):
+            url = qdrant_config.get('url', 'http://localhost')
+            port = qdrant_config.get('port', 6333)
+            snapshot_interval = qdrant_config.get('streaming', {}).get('snapshot_interval', 50)
+            self.enable_qdrant_streaming(url, port, snapshot_interval)
+        else:
+            self.disable_qdrant_streaming()
     
     def _setup_sbert(self):
         """Setup SBERT model for text embeddings"""
         if not self.offline:
             try:
                 from sentence_transformers import SentenceTransformer
-                self.sbert_model = SentenceTransformer('all-MiniLM-L6-v2', device='mps')
+                self.sbert_model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
                 print("✅ SBERT model loaded successfully")
             except ImportError:
                 print("⚠️  SBERT not available, using zero embeddings")
@@ -345,6 +436,25 @@ class Network:
         # Process through base network
         base_result = await self.process_input(features)
         
+        # Apply memory-based routing bias before processing
+        if self.enable_hippocampus_bias and hasattr(self, '_hippocampus'):
+            retrieved_experts = []
+            try:
+                if hasattr(self._hippocampus, 'retrieve_similar_memories'):
+                    sims = self._hippocampus.retrieve_similar_memories(features, k=3)
+                    for mid, _ in sims:
+                        mem = getattr(self._hippocampus, 'episodic_memories', {}).get(mid)
+                        if mem and getattr(mem, 'associated_experts', None):
+                            retrieved_experts.extend(mem.associated_experts)
+            except Exception:
+                pass
+            self._hippocampal_memory_bias(retrieved_experts, weight=0.03)
+        
+        # Stream to Qdrant if enabled
+        if self.qdrant_streamer:
+            # Take periodic snapshots
+            self.qdrant_streamer.maybe_snapshot(self, self.qdrant_snapshot_interval)
+        
         # Process through specialists
         specialist_results = {}
         for name, specialist in self.specialists.items():
@@ -362,11 +472,27 @@ class Network:
                 y = specialist.nlms_head.predict(features)
                 specialist_results['difficulty'] = float(y[0])
         
-        return {
+        result = {
             'base_result': base_result,
             'specialist_results': specialist_results,
             'features': features.tolist()
         }
+        
+        # Apply endocrine feedback (use router confidence as accuracy proxy)
+        if self.enable_neuroendocrine and 'router' in base_result:
+            router_output = base_result['router']
+            if isinstance(router_output, dict):
+                conf = float(router_output.get('routing_confidence', 0.5))
+                self._endocrine_step(result, accuracy=conf)
+        
+        # Stream routing decision to Qdrant if enabled
+        if self.qdrant_streamer and 'router' in base_result:
+            router_output = base_result['router']
+            if isinstance(router_output, dict) and 'routing_decision' in router_output:
+                routing_decision = router_output['routing_decision']
+                self.qdrant_streamer.upsert_routing(routing_decision, features)
+        
+        return result
     
     async def train_on_data(self, training_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Train the network on data"""
@@ -384,6 +510,10 @@ class Network:
         for data in training_data:
             text = data.get('text', '')
             features = self.get_features(text)
+            
+            # Stream to Qdrant if enabled
+            if self.qdrant_streamer:
+                self.qdrant_streamer.maybe_snapshot(self, self.qdrant_snapshot_interval)
             
             # Train domain classifier
             if 'domain' in data:
@@ -502,6 +632,85 @@ class Network:
                 pass
         
         return loaded
+    
+    def apply_endocrine_modulations(self, levels: dict) -> dict:
+        """Map hormone levels -> router/attention/energy (with clamps)"""
+        effects = {}
+        router = getattr(self, "_thalamic_router", None)
+        attn = getattr(self, "_attention", None) or getattr(router, "attention", None)
+        energy = getattr(self, "energy", None)
+
+        cortisol = float(levels.get(self._hormone_type.CORTISOL, 0.0))
+        gh = float(levels.get(self._hormone_type.GROWTH_HORMONE, 0.0))
+        thyroid = float(levels.get(self._hormone_type.THYROID, 1.0))
+        insulin = float(levels.get(self._hormone_type.INSULIN, 0.0))
+        dopamine = float(levels.get(self._hormone_type.DOPAMINE, 0.0))
+        norepi = float(levels.get(self._hormone_type.NOREPINEPHRINE, 0.0))
+
+        # Router knobs (if present)
+        if router is not None:
+            # temperature
+            if hasattr(router, "temperature"):
+                router.temperature = float(np.clip(router.temperature * (1.0 + 0.30*cortisol), 0.5, 2.5))
+                effects["temperature"] = router.temperature
+            # bias lr
+            if hasattr(router, "bias_lr"):
+                router.bias_lr = float(np.clip(router.bias_lr * (1.0 + 0.40*(thyroid - 1.0)), 1e-4, 0.1))
+                effects["bias_lr"] = router.bias_lr
+            # capacity (top_k)
+            if hasattr(router, "top_k") and hasattr(router, "n_experts"):
+                base = getattr(router, "_base_top_k", router.top_k)
+                router._base_top_k = base
+                router.top_k = int(np.clip(round(base * (1.0 + 0.20*gh)), 1, router.n_experts))
+                effects["top_k"] = router.top_k
+            # dopamine reward → nudge recent winners' biases
+            if dopamine > 0 and hasattr(router, "bias") and hasattr(router, "last_winners"):
+                router.bias[router.last_winners] += 0.10 * float(dopamine)
+
+        # Attention gain (norepinephrine)
+        if attn is not None and hasattr(attn, "gain_up") and hasattr(attn, "gain_down"):
+            g = 1.0 + 0.50 * norepi
+            attn.gain_up = float(np.clip(attn.gain_up * g, 0.8, 3.0))
+            attn.gain_down = float(np.clip(attn.gain_down / g, 0.2, 1.0))
+            effects["att_gain_up"] = attn.gain_up
+            effects["att_gain_down"] = attn.gain_down
+
+        # Energy efficiency (insulin)
+        if energy is not None and hasattr(energy, "e_mac_j"):
+            energy.e_mac_j = float(np.clip(energy.e_mac_j * (1.0 - 0.10*insulin), 1e-13, 1e-9))
+            effects["e_mac_j"] = energy.e_mac_j
+
+        return effects
+
+    def _hippocampal_memory_bias(self, retrieved: list, weight: float = 0.03):
+        """Apply memory-based bias to router"""
+        if not self.enable_hippocampus_bias: 
+            return
+        router = getattr(self, "_thalamic_router", None)
+        if router is None or not hasattr(router, "bias") or not hasattr(router, "names"):
+            return
+        names = list(router.names)
+        for name in retrieved:
+            if name in names:
+                idx = names.index(name)
+                router.bias[idx] += float(weight)
+
+    def _endocrine_step(self, result: dict, accuracy: float):
+        """Apply endocrine feedback step"""
+        if not self.enable_neuroendocrine: 
+            return
+        gates = np.array([d["gate"] for d in result.get("per_expert", {}).values()], dtype=np.float64)
+        if gates.size == 0: 
+            gates = np.array([1.0], dtype=np.float64)
+        energy_j = float(result.get("energy_j", 0.0))
+        delta = float(abs(accuracy - self._last_acc))
+        self._hypothalamus.monitor_system(energy_j, accuracy, gates, delta)
+        signals = self._hypothalamus.compute_control_signals()
+        self._pituitary.receive_hypothalamic_signals(signals)
+        effects = self._pituitary.apply_hormonal_effects(self)  # calls Network.apply_endocrine_modulations
+        result["endocrine"] = {"signals": signals, "effects": effects}
+        self._last_acc = accuracy
+        self._system_initialized = True
 
 
 # Backward compatibility aliases

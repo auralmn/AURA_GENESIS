@@ -15,7 +15,7 @@ class HistoricalNetwork(Network):
         try:
             if not offline:
                 from sentence_transformers import SentenceTransformer  # type: ignore
-                # Respect device if provided (e.g., 'mps', 'cuda', 'cpu')
+                # Respect device if provided (e.g., 'cuda', 'cuda', 'cpu')
                 if device:
                     self.sbert = SentenceTransformer('all-MiniLM-L6-v2', device=device)
                 else:
